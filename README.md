@@ -1,4 +1,4 @@
-﻿# BroadcastLabs Releases
+# BroadcastLabs Releases
 
 Public Windows installers for BroadcastLabs apps. Source code stays in each product's private repository.
 
@@ -12,3 +12,23 @@ Public Windows installers for BroadcastLabs apps. Source code stays in each prod
 Release tag pattern: `BroadcastRC-vX.Y.Z`
 
 Download base: `https://github.com/BroadcastLabsAU/BroadcastLabs-Releases/releases/download/BroadcastRC-vX.Y.Z/`
+
+## BroadcastMate, Logger, Sync, DeDuper, Trimmer and Phone
+
+| App | What it does | Newest installer |
+|-----|--------------|------------------|
+| **BroadcastMate** | Radio automation and playout | [`BroadcastMate-Setup.exe`](https://github.com/BroadcastLabsAU/BroadcastLabs-Releases/releases/download/BroadcastMate-latest/BroadcastMate-Setup.exe) |
+| **BroadcastLogger** | Compliance logging and off-air recording | [`BroadcastLogger-Setup.exe`](https://github.com/BroadcastLabsAU/BroadcastLabs-Releases/releases/download/BroadcastLogger-latest/BroadcastLogger-Setup.exe) |
+| **BroadcastSync** | Scheduled FTP and folder synchronisation | [`BroadcastSync-Setup.exe`](https://github.com/BroadcastLabsAU/BroadcastLabs-Releases/releases/download/BroadcastSync-latest/BroadcastSync-Setup.exe) |
+| **BroadcastDeDuper** | Duplicate music detection and library clean-up | [`BroadcastDeDuper-Setup.exe`](https://github.com/BroadcastLabsAU/BroadcastLabs-Releases/releases/download/BroadcastDeDuper-latest/BroadcastDeDuper-Setup.exe) |
+| **BroadcastTrimmer** | Automatic silence trimming | [`BroadcastTrimmer-Setup.exe`](https://github.com/BroadcastLabsAU/BroadcastLabs-Releases/releases/download/BroadcastTrimmer-latest/BroadcastTrimmer-Setup.exe) |
+| **BroadcastPhone** | Phone-in calls and talkback straight to air | [`BroadcastPhone-Setup.exe`](https://github.com/BroadcastLabsAU/BroadcastLabs-Releases/releases/download/BroadcastPhone-latest/BroadcastPhone-Setup.exe) |
+
+Release tag patterns:
+- `<App>-vX.Y.Z`: one release per version, for example `BroadcastMate-v1.0.0`
+- `<App>-latest`: a permanent release whose installer is replaced by every new
+  version, so the link above never changes. The website's download buttons use it.
+
+Each release also carries `<App>-Setup.exe.sha256` for checking the download.
+These installers are built, smoke-tested and published automatically by the
+GitHub Actions workflow in each app's repository when a `vX.Y.Z` tag is pushed.

@@ -13,7 +13,7 @@ Release tag pattern: `BroadcastRC-vX.Y.Z`
 
 Download base: `https://github.com/BroadcastLabsAU/BroadcastLabs-Releases/releases/download/BroadcastRC-vX.Y.Z/`
 
-## BroadcastMate, Logger, Sync, DeDuper, Trimmer and Phone
+## BroadcastMate, Logger, Sync, DeDuper, Trimmer, Phone and SMS
 
 | App | What it does | Newest installer |
 |-----|--------------|------------------|
@@ -23,6 +23,7 @@ Download base: `https://github.com/BroadcastLabsAU/BroadcastLabs-Releases/releas
 | **BroadcastDeDuper** | Duplicate music detection and library clean-up | [`BroadcastDeDuper-Setup.exe`](https://github.com/BroadcastLabsAU/BroadcastLabs-Releases/releases/download/BroadcastDeDuper-latest/BroadcastDeDuper-Setup.exe) |
 | **BroadcastTrimmer** | Automatic silence trimming | [`BroadcastTrimmer-Setup.exe`](https://github.com/BroadcastLabsAU/BroadcastLabs-Releases/releases/download/BroadcastTrimmer-latest/BroadcastTrimmer-Setup.exe) |
 | **BroadcastPhone** | Phone-in calls and talkback straight to air | [`BroadcastPhone-Setup.exe`](https://github.com/BroadcastLabsAU/BroadcastLabs-Releases/releases/download/BroadcastPhone-latest/BroadcastPhone-Setup.exe) |
+| **BroadcastSMS** | The studio text line: song requests, competitions and listener texts | [`BroadcastSMS-Setup.exe`](https://github.com/BroadcastLabsAU/BroadcastLabs-Releases/releases/download/BroadcastSMS-latest/BroadcastSMS-Setup.exe) |
 
 Release tag patterns:
 - `<App>-vX.Y.Z`: one release per version, for example `BroadcastMate-v1.0.0`

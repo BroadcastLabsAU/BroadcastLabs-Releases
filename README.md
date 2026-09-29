@@ -32,4 +32,5 @@ Release tag patterns:
 
 Each release also carries `<App>-Setup.exe.sha256` for checking the download.
 These installers are built, smoke-tested and published automatically by the
-GitHub Actions workflow in each app's repository when a `vX.Y.Z` tag is pushed.
+GitHub Actions workflow in each app's repository. To release one, see
+[RELEASING.md](RELEASING.md): it is one button in the app's Actions tab.

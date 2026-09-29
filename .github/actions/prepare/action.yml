@@ -1,0 +1,117 @@
+name: Prepare a BroadcastLabs release
+description: >
+  Works out the version for this build. A tag push (v1.2.3) or a "Run workflow"
+  with a version releases; anything else is a test build. For a release it
+  checks the RELEASES_TOKEN first, then (for "Run workflow") sets the version
+  in the app's files, commits, and tags, all before anything is built.
+
+inputs:
+  app-name:
+    description: e.g. BroadcastPhone
+    required: true
+  version:
+    description: Version to release from "Run workflow"; empty for a test build
+    required: false
+    default: ''
+  version-files:
+    description: Files holding the version, ';' separated, source of truth first
+    required: true
+  releases-token:
+    description: The RELEASES_TOKEN secret
+    required: false
+    default: ''
+  releases-repo:
+    required: false
+    default: BroadcastLabsAU/BroadcastLabs-Releases
+
+outputs:
+  version:
+    value: ${{ steps.run.outputs.version }}
+  tag:
+    value: ${{ steps.run.outputs.tag }}
+  publish:
+    description: "'true' when this run publishes a release"
+    value: ${{ steps.run.outputs.publish }}
+
+runs:
+  using: composite
+  steps:
+    - id: run
+      shell: pwsh
+      env:
+        APP_NAME: ${{ inputs.app-name }}
+        REQUESTED: ${{ inputs.version }}
+        VERSION_FILES: ${{ inputs.version-files }}
+        RELEASES_TOKEN: ${{ inputs.releases-token }}
+        RELEASES_REPO: ${{ inputs.releases-repo }}
+        HELP: https://github.com/BroadcastLabsAU/BroadcastLabs-Releases/blob/main/RELEASING.md
+      run: |
+        $ErrorActionPreference = 'Stop'
+        . "$env:GITHUB_ACTION_PATH/../../../tools/Version.ps1"
+        $files = $env:VERSION_FILES.Split(';') | Where-Object { $_.Trim() } | ForEach-Object { $_.Trim() }
+        function Fail($msg) { Write-Host "::error::$msg"; exit 1 }
+
+        $requested = "$env:REQUESTED".Trim().TrimStart('v', 'V')
+        if ($env:GITHUB_REF_TYPE -eq 'tag') {
+          $mode = 'tag'; $version = $env:GITHUB_REF_NAME.TrimStart('v', 'V')
+        } elseif ($requested) {
+          $mode = 'release'; $version = $requested
+        } else {
+          $mode = 'test'; $version = Get-AppVersion $files
+        }
+        if ($version -notmatch '^\d+\.\d+\.\d+$') { Fail "'$version' isn't a version like 1.2.3." }
+        $tag = "v$version"
+        $publish = $mode -ne 'test'
+
+        if ($publish) {
+          # ---- the token, before anything is changed or built -------------------
+          if (-not $env:RELEASES_TOKEN) {
+            Fail "RELEASES_TOKEN isn't set on this repository, so the installer couldn't be published. Run Set-ReleaseSecrets.ps1 (see $env:HELP)."
+          }
+          try {
+            $r = Invoke-WebRequest -UseBasicParsing -Uri "https://api.github.com/repos/$env:RELEASES_REPO" -Headers @{
+              Authorization = "Bearer $env:RELEASES_TOKEN"; 'X-GitHub-Api-Version' = '2022-11-28' }
+          } catch {
+            Fail "GitHub refused RELEASES_TOKEN ($($_.Exception.Message)). It has probably expired or been revoked: make a new one and run Set-ReleaseSecrets.ps1 (see $env:HELP)."
+          }
+          $exp = "$($r.Headers['github-authentication-token-expiration'])"
+          if ($exp) {
+            $days = [math]::Floor(([DateTimeOffset]::Parse($exp) - [DateTimeOffset]::UtcNow).TotalDays)
+            if ($days -lt 0) { Fail "RELEASES_TOKEN expired on $exp. Make a new one and run Set-ReleaseSecrets.ps1." }
+            if ($days -lt 30) { Write-Host "::warning::RELEASES_TOKEN expires in $days days ($exp). Make a new one and run Set-ReleaseSecrets.ps1 before then." }
+            else { Write-Host "RELEASES_TOKEN is valid until $exp." }
+          }
+
+          # ---- the tag --------------------------------------------------------------
+          $existing = git ls-remote --tags origin "refs/tags/$tag"
+          if ($mode -eq 'release' -and $existing) { Fail "$tag already exists. Choose a higher version." }
+
+          if ($mode -eq 'release') {
+            Write-Host "Setting the version to $version"
+            Set-AppVersion $files $version
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add -- $files
+            git diff --cached --quiet
+            if ($LASTEXITCODE -ne 0) {
+              git commit -m "Release $tag" | Out-Null
+              git push origin "HEAD:refs/heads/$env:GITHUB_REF_NAME"
+              if ($LASTEXITCODE -ne 0) { Fail "Couldn't push the version change to $env:GITHUB_REF_NAME (did it change during the run?). Run the workflow again." }
+            }
+            git tag -a $tag -m "$env:APP_NAME $version"
+            git push origin $tag
+            if ($LASTEXITCODE -ne 0) { Fail "Couldn't push tag $tag." }
+          } else {
+            $src = Get-AppVersion $files
+            if ($src -ne $version) {
+              Fail "Tag $tag, but $($files[0]) says $src. The app would report $src and keep offering itself as an update. Delete the tag and release with Actions > Build and release > Run workflow, version $version, which sets it everywhere."
+            }
+          }
+          Write-Host "::notice::Releasing $env:APP_NAME $version ($tag)."
+        } else {
+          Write-Host "Test build of $env:APP_NAME $version (nothing is published)."
+        }
+
+        "version=$version" >> $env:GITHUB_OUTPUT
+        "tag=$tag"         >> $env:GITHUB_OUTPUT
+        "publish=$($publish.ToString().ToLower())" >> $env:GITHUB_OUTPUT

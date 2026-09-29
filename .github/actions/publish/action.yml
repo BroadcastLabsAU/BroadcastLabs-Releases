@@ -1,0 +1,148 @@
+name: Publish a BroadcastLabs release
+description: >
+  Publishes the installer in the app's own repository, on the public
+  BroadcastLabs-Releases repository (<App>-vX.Y.Z and the permanent
+  <App>-latest), then tells the website so its download and update check
+  move to the new version.
+
+inputs:
+  app-name:
+    required: true
+  app-key:
+    description: Website product key, e.g. broadcastphone
+    required: true
+  version:
+    required: true
+  tag:
+    required: true
+  dist:
+    description: Folder holding <App>-Setup.exe and its .sha256
+    required: false
+    default: dist
+  notes:
+    description: Release notes (plain text); GitHub's generated notes follow
+    required: false
+    default: ''
+  critical:
+    description: "'true' marks the update critical in the apps"
+    required: false
+    default: 'false'
+  github-token:
+    required: true
+  releases-token:
+    required: true
+  webhook-secret:
+    description: RELEASE_WEBHOOK_SECRET; empty skips the website
+    required: false
+    default: ''
+  website:
+    required: false
+    default: https://www.broadcastlabs.com.au
+  releases-repo:
+    required: false
+    default: BroadcastLabsAU/BroadcastLabs-Releases
+
+runs:
+  using: composite
+  steps:
+    - name: Publish in this repository
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        APP_NAME: ${{ inputs.app-name }}
+        TAG: ${{ inputs.tag }}
+        NOTES: ${{ inputs.notes }}
+        DIST: ${{ inputs.dist }}
+      run: |
+        $files = (Get-ChildItem $env:DIST -File).FullName
+        gh release view $env:TAG 2>$null | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+          $ghArgs = @('release', 'create', $env:TAG, '--title', "$env:APP_NAME $env:TAG", '--generate-notes', '--verify-tag')
+          if ($env:NOTES) { $ghArgs += @('--notes', $env:NOTES) }
+          gh @ghArgs
+          if ($LASTEXITCODE -ne 0) { throw "Couldn't create release $env:TAG here." }
+        }
+        gh release upload $env:TAG $files --clobber
+        if ($LASTEXITCODE -ne 0) { throw "Couldn't upload to release $env:TAG." }
+
+    - name: Publish to BroadcastLabs-Releases
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ inputs.releases-token }}
+        APP_NAME: ${{ inputs.app-name }}
+        VERSION: ${{ inputs.version }}
+        NOTES: ${{ inputs.notes }}
+        DIST: ${{ inputs.dist }}
+        REPO: ${{ inputs.releases-repo }}
+      run: |
+        $files = (Get-ChildItem $env:DIST -File).FullName
+        $about = "$env:APP_NAME $env:VERSION for Windows 10 and 11 (64-bit). Part of the BroadcastLabs suite: https://www.broadcastlabs.com.au"
+        $notes = if ($env:NOTES) { "$env:NOTES`n`n$about" } else { $about }
+        $tag = "$env:APP_NAME-v$env:VERSION"
+        gh release view $tag --repo $env:REPO 2>$null | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+          gh release create $tag --repo $env:REPO --title "$env:APP_NAME $env:VERSION" --notes $notes --latest=false
+          if ($LASTEXITCODE -ne 0) { throw "Couldn't create $tag on $env:REPO. Check RELEASES_TOKEN has Contents: Read and write on it." }
+        }
+        gh release upload $tag $files --repo $env:REPO --clobber
+        if ($LASTEXITCODE -ne 0) { throw "Couldn't upload to $tag on $env:REPO." }
+
+        $latest = "$env:APP_NAME-latest"
+        gh release view $latest --repo $env:REPO 2>$null | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+          gh release create $latest --repo $env:REPO --title "$env:APP_NAME (latest)" --notes "Always the newest $env:APP_NAME installer." --latest=false
+          if ($LASTEXITCODE -ne 0) { throw "Couldn't create $latest on $env:REPO." }
+        }
+        gh release edit $latest --repo $env:REPO --title "$env:APP_NAME (latest: $env:VERSION)" --notes "Always the newest $env:APP_NAME installer. Currently version $env:VERSION."
+        gh release upload $latest $files --repo $env:REPO --clobber
+        if ($LASTEXITCODE -ne 0) { throw "Couldn't upload to $latest on $env:REPO." }
+        Write-Host "::notice::Published $tag and updated $latest on $env:REPO."
+
+    - name: Tell the website
+      shell: pwsh
+      env:
+        SECRET: ${{ inputs.webhook-secret }}
+        WEBSITE: ${{ inputs.website }}
+        APP_NAME: ${{ inputs.app-name }}
+        APP_KEY: ${{ inputs.app-key }}
+        VERSION: ${{ inputs.version }}
+        TAG: ${{ inputs.tag }}
+        NOTES: ${{ inputs.notes }}
+        CRITICAL: ${{ inputs.critical }}
+        DIST: ${{ inputs.dist }}
+        REPO: ${{ inputs.releases-repo }}
+      run: |
+        if (-not $env:SECRET) {
+          Write-Host "::warning::RELEASE_WEBHOOK_SECRET isn't set, so the website still shows the previous version. Set the download's version to $env:VERSION in Admin > Downloads, or run Set-ReleaseSecrets.ps1 to automate it."
+          exit 0
+        }
+        $exe = Get-Item (Join-Path $env:DIST "$env:APP_NAME-Setup.exe")
+        $sha = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
+        $payload = [ordered]@{
+          product  = $env:APP_KEY
+          version  = $env:VERSION
+          platform = 'windows'
+          arch     = 'x86_64'
+          url      = "https://github.com/$env:REPO/releases/download/$env:APP_NAME-latest/$env:APP_NAME-Setup.exe"
+          size     = $exe.Length
+          sha256   = $sha
+          notes    = "$env:NOTES"
+          critical = ($env:CRITICAL -eq 'true')
+          tag      = $env:TAG
+        }
+        $body = $payload | ConvertTo-Json -Compress
+        $ts = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+        $hmac = [System.Security.Cryptography.HMACSHA256]::new([Text.Encoding]::UTF8.GetBytes($env:SECRET))
+        $sig = 'sha256=' + ([BitConverter]::ToString($hmac.ComputeHash([Text.Encoding]::UTF8.GetBytes("$ts.$body"))) -replace '-', '').ToLower()
+        try {
+          $r = Invoke-WebRequest -UseBasicParsing -Method Post -Uri "$($env:WEBSITE.TrimEnd('/'))/api/releases" `
+                 -ContentType 'application/json; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes($body)) `
+                 -Headers @{ 'X-BroadcastLabs-Timestamp' = "$ts"; 'X-BroadcastLabs-Signature' = $sig }
+          $j = $r.Content | ConvertFrom-Json
+          Write-Host "::notice::Website: $env:APP_KEY $env:VERSION is now the current release (download #$($j.download_id), $($j.action))."
+        } catch {
+          $detail = $_.ErrorDetails.Message
+          if (-not $detail) { $detail = $_.Exception.Message }
+          # The installer is already out; don't fail the run over the website.
+          Write-Host "::warning::The installer is published, but the website didn't accept the release notice: $detail. Update the download's version in Admin > Downloads."
+        }

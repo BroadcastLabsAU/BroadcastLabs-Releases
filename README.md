@@ -13,7 +13,7 @@ Release tag pattern: `BroadcastRC-vX.Y.Z`
 
 Download base: `https://github.com/BroadcastLabsAU/BroadcastLabs-Releases/releases/download/BroadcastRC-vX.Y.Z/`
 
-## BroadcastMate, Logger, Sync, DeDuper, Trimmer, Phone, SMS and VerifyAI
+## BroadcastMate, Logger, Sync, DeDuper, Trimmer, Phone, SMS, VerifyAI and Drop
 
 | App | What it does | Newest installer |
 |-----|--------------|------------------|
@@ -25,6 +25,8 @@ Download base: `https://github.com/BroadcastLabsAU/BroadcastLabs-Releases/releas
 | **BroadcastPhone** | Phone-in calls and talkback straight to air | [`BroadcastPhone-Setup.exe`](https://github.com/BroadcastLabsAU/BroadcastLabs-Releases/releases/download/BroadcastPhone-latest/BroadcastPhone-Setup.exe) |
 | **BroadcastSMS** | The studio text line: song requests, competitions and listener texts | [`BroadcastSMS-Setup.exe`](https://github.com/BroadcastLabsAU/BroadcastLabs-Releases/releases/download/BroadcastSMS-latest/BroadcastSMS-Setup.exe) |
 | **BroadcastVerifyAI** | Local, privacy-first screening of audio for signs of AI generation | [`BroadcastVerifyAI-Setup.exe`](https://github.com/BroadcastLabsAU/BroadcastLabs-Releases/releases/download/BroadcastVerifyAI-latest/BroadcastVerifyAI-Setup.exe) |
+| **BroadcastDrop** | Presenters send their programmes to the studio from home | [`BroadcastDrop-Setup.exe`](https://github.com/BroadcastLabsAU/BroadcastLabs-Releases/releases/download/BroadcastDrop-latest/BroadcastDrop-Setup.exe) |
+| **BroadcastDrop Studio** | Receives, checks and files presenters' programmes at the studio | [`BroadcastDropStudio-Setup.exe`](https://github.com/BroadcastLabsAU/BroadcastLabs-Releases/releases/download/BroadcastDropStudio-latest/BroadcastDropStudio-Setup.exe) |
 
 Release tag patterns:
 - `<App>-vX.Y.Z`: one release per version, for example `BroadcastMate-v1.0.0`

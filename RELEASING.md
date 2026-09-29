@@ -1,7 +1,7 @@
 # Releasing a BroadcastLabs app
 
 Every Windows app in the suite (BroadcastMate, Logger, Sync, DeDuper, Trimmer,
-Phone, SMS and VerifyAI) is built, tested, packaged and published by GitHub Actions. A
+Phone, SMS, VerifyAI and Drop) is built, tested, packaged and published by GitHub Actions. A
 release is one button:
 
 > **App repository > Actions > Build and release > Run workflow**
@@ -88,6 +88,10 @@ Each app's workflow names the files that hold its version in `VERSION_FILES`
 (the first is the source of truth), for example
 `CMakeLists.txt;resources/win/BroadcastPhone.rc`. A .NET project file
 (`*.csproj`) is supported too: only its `<Version>` element is changed.
+
+A repository that builds two apps (BroadcastDrop and BroadcastDrop Studio)
+calls the publish step once per app, each with its own `dist` folder and
+website product key; both share the one version and tag.
 
 The website notice is a POST to `/api/releases`, signed with HMAC-SHA256 over
 `<timestamp>.<body>` using the website key. The website refuses notices more

@@ -28,7 +28,7 @@
 param(
     [string[]] $Repos = @('BroadcastMate', 'BroadcastLogger', 'BroadcastSync', 'BroadcastDeDuper',
                           'BroadcastTrimmer', 'BroadcastPhone', 'BroadcastSMS',
-                          'BroadcastVerifyAI'),
+                          'BroadcastVerifyAI', 'BroadcastDrop'),
     [string]   $Org = 'BroadcastLabsAU',
     [string]   $ReleasesRepo = 'BroadcastLabs-Releases',
     [switch]   $SkipToken,

@@ -3,6 +3,8 @@
 # Every BroadcastLabs app keeps its version in a few files (CMakeLists.txt,
 # a branding header, the Windows .rc resource, VERSION.txt). The workflow
 # names them in VERSION_FILES, first one being the source of truth.
+# A .NET project (*.csproj) keeps it in <Version>x.y.z</Version>; only that
+# element is touched (PackageReference Version="..." attributes are not).
 
 function Get-AppVersion([string[]] $Files) {
     $f = $Files[0]
@@ -11,6 +13,11 @@ function Get-AppVersion([string[]] $Files) {
     if ((Split-Path $f -Leaf) -eq 'CMakeLists.txt') {
         $m = [regex]::Match($text, '(?s)project\s*\([^)]*?\bVERSION\s+(\d+\.\d+\.\d+)')
         if ($m.Success) { return $m.Groups[1].Value }
+    }
+    if ($f -like '*.csproj') {
+        $m = [regex]::Match($text, '<Version>\s*(\d+\.\d+\.\d+)(\.\d+)?\s*</Version>')
+        if ($m.Success) { return $m.Groups[1].Value }
+        throw "No <Version> found in $f"
     }
     foreach ($line in ($text -split "`n")) {
         if ($line -match '(?i)version') {
@@ -29,6 +36,8 @@ function Set-AppVersion([string[]] $Files, [string] $Version) {
         $leaf = Split-Path $f -Leaf
         if ($leaf -eq 'VERSION.txt') {
             $new = "$Version`n"
+        } elseif ($leaf -like '*.csproj') {
+            $new = [regex]::Replace($text, '<Version>\s*\d+\.\d+\.\d+(\.\d+)?\s*</Version>', "<Version>$Version</Version>")
         } elseif ($leaf -eq 'CMakeLists.txt') {
             $new = [regex]::Replace($text, '(?s)(project\s*\([^)]*?\bVERSION\s+)\d+\.\d+\.\d+', { param($m) $m.Groups[1].Value + $Version }, 1)
         } else {
